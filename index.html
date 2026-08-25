@@ -261,16 +261,22 @@
     // 2. 비밀번호 검증 ('111197' Base64)[cite: 3, 4]
     const CORRECT_PASS_BASE64 = "MTExMTk3"; 
 
+    // 3. 전역 상태 변수 (초기화 오류 방지를 위해 최상단에 배치)
+    const now = new Date();
+    const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const options = { month: 'long', day: 'numeric', weekday: 'short' };
+
     let selectedType = 'habit';
+    let habits = [];
+    let checkState = {};
+    let diaryLogs = [];
+    let calendarEvents = [];
 
-    function setType(type) {
-      selectedType = type;
-      document.getElementById('typeHabitBtn').className = `type-btn ${type === 'habit' ? 'active' : ''}`;
-      document.getElementById('typeMemoBtn').className = `type-btn ${type === 'memo' ? 'active' : ''}`;
-      document.getElementById('timeRangeBox').style.display = type === 'habit' ? 'flex' : 'none';
-      document.getElementById('habitInput').placeholder = type === 'habit' ? '새 루틴 내용 입력' : '메모 / 체크할 일 입력';
-    }
+    let currentCalDate = new Date();
+    let selectedCalDate = todayKey;
+    let isEventAccordionOpen = true;
 
+    // --- 인증 로직 ---
     function checkAuth() {
       const input = document.getElementById('passInput').value.trim();
       try {
@@ -295,6 +301,10 @@
     function unlockApp() {
       document.getElementById('lockScreen').style.display = 'none';
       document.getElementById('appContainer').style.display = 'block';
+      
+      const dateEl = document.getElementById('currentDate');
+      if (dateEl) dateEl.innerText = `${todayKey} (${new Date().toLocaleDateString('ko-KR', options)})`;
+      
       loadData();
       loadDiaryLogs();
       loadCalendarEvents();
@@ -313,35 +323,27 @@
       if (e.key === 'Enter') checkAuth();
     }
 
-    if (localStorage.getItem('auth_verified') === 'true') {
-      unlockApp();
+    // --- UI 탭 토글 ---
+    function setType(type) {
+      selectedType = type;
+      document.getElementById('typeHabitBtn').className = `type-btn ${type === 'habit' ? 'active' : ''}`;
+      document.getElementById('typeMemoBtn').className = `type-btn ${type === 'memo' ? 'active' : ''}`;
+      document.getElementById('timeRangeBox').style.display = type === 'habit' ? 'flex' : 'none';
+      document.getElementById('habitInput').placeholder = type === 'habit' ? '새 루틴 내용 입력' : '메모 / 체크할 일 입력';
     }
 
-    // --- 기본 날짜 설정 ---
-    const now = new Date();
-    const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    const options = { month: 'long', day: 'numeric', weekday: 'short' };
-    document.getElementById('currentDate').innerText = `${todayKey} (${new Date().toLocaleDateString('ko-KR', options)})`;
-
-    let habits = [];
-    let checkState = {};
-    let diaryLogs = [];
-    let calendarEvents = [];
-
-    // --- 캘린더 상태 ---
-    let currentCalDate = new Date();
-    let selectedCalDate = todayKey;
-    let isEventAccordionOpen = true;
-
+    // --- 캘린더 로직 ---
     function renderCalendar() {
       const year = currentCalDate.getFullYear();
       const month = currentCalDate.getMonth();
-      document.getElementById('calMonthTitle').innerText = `${year}년 ${month + 1}월`;
+      const monthTitle = document.getElementById('calMonthTitle');
+      if (monthTitle) monthTitle.innerText = `${year}년 ${month + 1}월`;
 
       const firstDay = new Date(year, month, 1).getDay();
       const lastDate = new Date(year, month + 1, 0).getDate();
 
       const gridEl = document.getElementById('calDaysGrid');
+      if (!gridEl) return;
       gridEl.innerHTML = '';
 
       for (let i = 0; i < firstDay; i++) {
@@ -387,13 +389,16 @@
       isEventAccordionOpen = !isEventAccordionOpen;
       const body = document.getElementById('eventBody');
       const arrow = document.getElementById('accordionArrow');
-      body.style.display = isEventAccordionOpen ? 'flex' : 'none';
-      arrow.innerText = isEventAccordionOpen ? '▼' : '▶';
+      if (body) body.style.display = isEventAccordionOpen ? 'flex' : 'none';
+      if (arrow) arrow.innerText = isEventAccordionOpen ? '▼' : '▶';
     }
 
     function updateSelectedDateView() {
-      document.getElementById('selectedDateTitle').innerText = `📅 ${selectedCalDate} 일정`;
+      const titleEl = document.getElementById('selectedDateTitle');
+      if (titleEl) titleEl.innerText = `📅 ${selectedCalDate} 일정`;
+      
       const listEl = document.getElementById('eventList');
+      if (!listEl) return;
       listEl.innerHTML = '';
 
       const matchedEvents = calendarEvents.filter(ev => ev.date === selectedCalDate);
@@ -469,7 +474,8 @@
     }
 
     async function loadData() {
-      document.getElementById('loading').style.display = 'block';
+      const loadingEl = document.getElementById('loading');
+      if (loadingEl) loadingEl.style.display = 'block';
 
       try {
         const { data: habitData } = await db.from('habits').select('*');
@@ -483,7 +489,7 @@
       } catch (err) {
         console.error("데이터 로딩 실패:", err);
       } finally {
-        document.getElementById('loading').style.display = 'none';
+        if (loadingEl) loadingEl.style.display = 'none';
         render();
       }
     }
@@ -491,6 +497,8 @@
     function render() {
       const routineListEl = document.getElementById('routineList');
       const memoListEl = document.getElementById('memoList');
+      if (!routineListEl || !memoListEl) return;
+
       routineListEl.innerHTML = '';
       memoListEl.innerHTML = '';
 
@@ -604,7 +612,8 @@
 
     function updateProgress() {
       const habitOnly = habits.filter(h => h.type !== 'memo');
-      document.getElementById('habitCountText').innerText = `총 ${habitOnly.length}개`;
+      const countEl = document.getElementById('habitCountText');
+      if (countEl) countEl.innerText = `총 ${habitOnly.length}개`;
 
       if (habitOnly.length === 0) {
         document.getElementById('progressPercent').innerText = '0%';
@@ -646,6 +655,8 @@
 
     async function loadDiaryLogs() {
       const historyListEl = document.getElementById('diaryHistoryList');
+      if (!historyListEl) return;
+
       const { data, error } = await db.from('diary_logs').select('*').order('created_at', { ascending: false });
 
       if (error || !data || data.length === 0) {
@@ -678,6 +689,11 @@
 
     function handleKeyPress(e) {
       if (e.key === 'Enter') addHabit();
+    }
+
+    // --- 자동 로그인 실행 (모든 함수와 변수가 정의된 맨 마지막에 실행) ---
+    if (localStorage.getItem('auth_verified') === 'true') {
+      unlockApp();
     }
   </script>
 </body>
