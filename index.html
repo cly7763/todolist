@@ -75,16 +75,16 @@
     .memo-title { font-size: 0.9rem; font-weight: 600; color: #0f172a; }
     .memo-save-btn { background: #0ea5e9; color: #ffffff; border: none; border-radius: 8px; padding: 6px 14px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: 0.2s; }
     .memo-save-btn:hover { background: #0284c7; }
-    .memo-area { width: 100%; height: 95px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; padding: 12px; color: #1e293b; font-size: 0.92rem; resize: none; outline: none; transition: border 0.2s; line-height: 1.5; }
+    .memo-area { width: 100%; height: 90px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; padding: 12px; color: #1e293b; font-size: 0.92rem; resize: none; outline: none; transition: border 0.2s; line-height: 1.5; }
     .memo-area:focus { border-color: #0ea5e9; background: #ffffff; }
-    .save-status { font-size: 0.75rem; color: #10b981; margin-top: 6px; text-align: right; display: none; font-weight: 600; }
 
-    /* 히스토리 토글 */
+    /* 일기 기록 카드 */
     .history-card { background: #ffffff; border-radius: 16px; padding: 18px; margin-top: 18px; border: 1px solid #e2e8f0; }
-    .history-item { padding: 10px 0; border-bottom: 1px solid #f1f5f9; display: flex; flex-direction: column; gap: 4px; }
+    .history-item { padding: 12px 0; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
     .history-item:last-child { border-bottom: none; }
+    .history-content { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
     .history-date { font-size: 0.75rem; font-weight: 700; color: #0ea5e9; }
-    .history-text { font-size: 0.88rem; color: #334155; line-height: 1.45; white-space: pre-wrap; }
+    .history-text { font-size: 0.9rem; color: #334155; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
 
     /* 잠금 화면 */
     #lockScreen { width: 100%; max-width: 380px; margin: auto; text-align: center; }
@@ -119,7 +119,7 @@
     <header>
       <button class="lockout-btn" onclick="logout()">잠금 🔒</button>
       <div id="currentDate" class="date-text">TODAY</div>
-      <h1 class="title">DMK Routine Maker</h1>
+      <h1 class="title">Daily Routine</h1>
     </header>
 
     <div class="card">
@@ -175,21 +175,19 @@
     </div>
     <ul id="memoList" class="routine-list"></ul>
 
-    <!-- 오늘의 한 줄 일기 / 회고 카드 -->
+    <!-- 오늘의 일기 입력 카드 -->
     <div class="card" style="margin-top: 24px;">
       <div class="memo-header">
-        <div class="memo-title">📖 오늘의 한 줄 일기 & 회고</div>
-        <button class="memo-save-btn" onclick="manualSaveDiary()">일기 저장</button>
+        <div class="memo-title">📖 오늘 하루 일기 남기기</div>
+        <button class="memo-save-btn" onclick="addDiary()">일기 저장</button>
       </div>
-      <textarea id="dailyMemo" class="memo-area" placeholder="오늘 하루 피드백이나 일기를 남겨보세요. (작성 후 '일기 저장'을 누르면 DB에 바로 반영됩니다.)" oninput="autoSaveDiary()"></textarea>
-      <div id="saveStatus" class="save-status">✓ 저장이 완료되었습니다.</div>
+      <textarea id="dailyMemo" class="memo-area" placeholder="오늘 하루 피드백이나 일기를 작성하세요."></textarea>
     </div>
 
-    <!-- 지난 일기 모아보기 -->
+    <!-- 일기 기록 리스트 -->
     <div class="history-card">
-      <div style="font-size: 0.9rem; font-weight: 600; color: #0f172a; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
-        <span>📚 최근 일기 기록</span>
-        <button onclick="loadDiaryHistory()" style="background:none; border:none; color:#0ea5e9; font-size:0.8rem; cursor:pointer;">새로고침</button>
+      <div style="font-size: 0.9rem; font-weight: 600; color: #0f172a; margin-bottom: 8px;">
+        <span>📚 작성된 일기 기록</span>
       </div>
       <div id="diaryHistoryList">
         <div style="font-size: 0.8rem; color: #94a3b8; text-align: center; padding: 8px;">기록을 불러오는 중...</div>
@@ -198,12 +196,12 @@
   </div>
 
   <script>
-    // 1. Supabase 연동 설정[cite: 4]
+    // 1. Supabase 연동 설정[cite: 3, 4]
     const SUPABASE_URL = "https://mgwkzgprgyeznubetinl.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1nd2t6Z3ByZ3llem51YmV0aW5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc1ODk4MTEsImV4cCI6MjEwMzE2NTgxMX0.VOUvvP30Kob1xeJ18ZZ0BZljbzuiTTSvCaLSpR6Fq9U";
     const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // 2. 비밀번호 검증 ('111197' Base64)[cite: 4]
+    // 2. 비밀번호 검증 ('111197' Base64)[cite: 3, 4]
     const CORRECT_PASS_BASE64 = "MTExMTk3"; 
 
     let selectedType = 'habit';
@@ -241,7 +239,7 @@
       document.getElementById('lockScreen').style.display = 'none';
       document.getElementById('appContainer').style.display = 'block';
       loadData();
-      loadDiaryHistory();
+      loadDiaryLogs();
     }
 
     function logout() {
@@ -267,7 +265,7 @@
 
     let habits = [];
     let checkState = {};
-    let memoTimeout = null;
+    let diaryLogs = [];
 
     function sortHabits(list) {
       return list.sort((a, b) => {
@@ -293,11 +291,6 @@
         checkState = {};
         if (checks) {
           checks.forEach(c => { checkState[c.habit_id] = c.is_done; });
-        }
-
-        const { data: memoData } = await db.from('daily_memos').select('memo').eq('date', todayKey).maybeSingle();
-        if (memoData) {
-          document.getElementById('dailyMemo').value = memoData.memo || '';
         }
       } catch (err) {
         console.error("데이터 로딩 실패:", err);
@@ -376,11 +369,7 @@
       render();
 
       const { error } = await db.from('daily_checks').upsert(
-        {
-          date: todayKey,
-          habit_id: id,
-          is_done: newState
-        },
+        { date: todayKey, habit_id: id, is_done: newState },
         { onConflict: 'date,habit_id' }
       );
       if (error) console.error("체크 저장 실패:", error);
@@ -401,10 +390,8 @@
       const newHabit = { id: newId, text, time, end_time, type: selectedType };
 
       const { error } = await db.from('habits').insert([newHabit]);
-      
       if (error) {
         alert("DB 저장 실패: " + error.message);
-        console.error("Insert Error:", error);
         return;
       }
 
@@ -449,67 +436,71 @@
       document.getElementById('progressFill').style.width = `${percent}%`;
     }
 
-    // 📖 일기 수동 저장 버튼 함수 (onConflict 명시)
-    async function manualSaveDiary() {
-      const memo = document.getElementById('dailyMemo').value;
-      const { error } = await db.from('daily_memos').upsert(
-        {
-          date: todayKey,
-          memo: memo,
-          updated_at: new Date().toISOString()
-        },
-        { onConflict: 'date' }
-      );
+    // 📖 일기 추가 함수 (인풋 비우고 리스트에 추가)
+    async function addDiary() {
+      const memoInput = document.getElementById('dailyMemo');
+      const memo = memoInput.value.trim();
 
-      if (error) {
-        alert("일기 저장 실패: " + error.message);
-        console.error("Diary Save Error:", error);
-      } else {
-        const statusEl = document.getElementById('saveStatus');
-        statusEl.style.display = 'block';
-        setTimeout(() => { statusEl.style.display = 'none'; }, 2000);
-        loadDiaryHistory();
-      }
-    }
-
-    // 📖 일기 타이핑 자동 저장 (디바운스)
-    function autoSaveDiary() {
-      clearTimeout(memoTimeout);
-      memoTimeout = setTimeout(async () => {
-        const memo = document.getElementById('dailyMemo').value;
-        const { error } = await db.from('daily_memos').upsert(
-          {
-            date: todayKey,
-            memo: memo,
-            updated_at: new Date().toISOString()
-          },
-          { onConflict: 'date' }
-        );
-        if (error) console.error("일기 자동 저장 에러:", error);
-      }, 1000);
-    }
-
-    // 📚 지난 일기 히스토리 조회
-    async function loadDiaryHistory() {
-      const historyListEl = document.getElementById('diaryHistoryList');
-      const { data, error } = await db.from('daily_memos').select('*').order('date', { ascending: false }).limit(7);
-
-      if (error || !data || data.length === 0) {
-        historyListEl.innerHTML = `<div style="font-size: 0.8rem; color: #94a3b8; text-align: center; padding: 8px;">작성된 일기 기록이 없습니다.</div>`;
+      if (!memo) {
+        alert("일기 내용을 입력해주세요.");
         return;
       }
 
+      const newDiary = {
+        id: Date.now(),
+        date: todayKey,
+        memo: memo
+      };
+
+      const { error } = await db.from('diary_logs').insert([newDiary]);
+      if (error) {
+        alert("일기 저장 실패: " + error.message);
+        console.error("Diary Insert Error:", error);
+        return;
+      }
+
+      memoInput.value = ''; // 저장 완료 후 인풋창 초기화
+      loadDiaryLogs();
+    }
+
+    // 📚 일기 목록 불러오기
+    async function loadDiaryLogs() {
+      const historyListEl = document.getElementById('diaryHistoryList');
+      const { data, error } = await db.from('diary_logs').select('*').order('created_at', { ascending: false });
+
+      if (error || !data || data.length === 0) {
+        historyListEl.innerHTML = `<div style="font-size: 0.8rem; color: #94a3b8; text-align: center; padding: 12px;">작성된 일기 기록이 없습니다.</div>`;
+        return;
+      }
+
+      diaryLogs = data;
       historyListEl.innerHTML = '';
-      data.forEach(item => {
-        if (!item.memo || !item.memo.trim()) return;
+      
+      diaryLogs.forEach(item => {
         const div = document.createElement('div');
         div.className = 'history-item';
         div.innerHTML = `
-          <div class="history-date">📅 ${item.date}</div>
-          <div class="history-text">${item.memo}</div>
+          <div class="history-content">
+            <div class="history-date">📅 ${item.date}</div>
+            <div class="history-text">${item.memo}</div>
+          </div>
+          <button class="delete-btn" onclick="deleteDiary(${item.id})">✕</button>
         `;
         historyListEl.appendChild(div);
       });
+    }
+
+    // ❌ 일기 개별 삭제 함수
+    async function deleteDiary(id) {
+      if (!confirm("이 일기를 삭제하시겠습니까?")) return;
+
+      const { error } = await db.from('diary_logs').delete().eq('id', id);
+      if (error) {
+        alert("삭제 실패: " + error.message);
+        return;
+      }
+
+      loadDiaryLogs();
     }
 
     function handleKeyPress(e) {
