@@ -73,18 +73,18 @@
     /* 일기 회고 영역 스타일 */
     .memo-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
     .memo-title { font-size: 0.9rem; font-weight: 600; color: #0f172a; }
-    .memo-save-btn { background: #0ea5e9; color: #ffffff; border: none; border-radius: 8px; padding: 6px 12px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: 0.2s; }
+    .memo-save-btn { background: #0ea5e9; color: #ffffff; border: none; border-radius: 8px; padding: 6px 14px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: 0.2s; }
     .memo-save-btn:hover { background: #0284c7; }
-    .memo-area { width: 100%; height: 90px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; padding: 12px; color: #1e293b; font-size: 0.92rem; resize: none; outline: none; transition: border 0.2s; line-height: 1.5; }
+    .memo-area { width: 100%; height: 95px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; padding: 12px; color: #1e293b; font-size: 0.92rem; resize: none; outline: none; transition: border 0.2s; line-height: 1.5; }
     .memo-area:focus { border-color: #0ea5e9; background: #ffffff; }
-    .save-status { font-size: 0.75rem; color: #10b981; margin-top: 6px; text-align: right; display: none; }
+    .save-status { font-size: 0.75rem; color: #10b981; margin-top: 6px; text-align: right; display: none; font-weight: 600; }
 
     /* 히스토리 토글 */
     .history-card { background: #ffffff; border-radius: 16px; padding: 18px; margin-top: 18px; border: 1px solid #e2e8f0; }
     .history-item { padding: 10px 0; border-bottom: 1px solid #f1f5f9; display: flex; flex-direction: column; gap: 4px; }
     .history-item:last-child { border-bottom: none; }
     .history-date { font-size: 0.75rem; font-weight: 700; color: #0ea5e9; }
-    .history-text { font-size: 0.88rem; color: #334155; line-height: 1.4; white-space: pre-wrap; }
+    .history-text { font-size: 0.88rem; color: #334155; line-height: 1.45; white-space: pre-wrap; }
 
     /* 잠금 화면 */
     #lockScreen { width: 100%; max-width: 380px; margin: auto; text-align: center; }
@@ -198,12 +198,12 @@
   </div>
 
   <script>
-    // 1. Supabase 연동 설정[cite: 3]
+    // 1. Supabase 연동 설정[cite: 4]
     const SUPABASE_URL = "https://mgwkzgprgyeznubetinl.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1nd2t6Z3ByZ3llem51YmV0aW5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc1ODk4MTEsImV4cCI6MjEwMzE2NTgxMX0.VOUvvP30Kob1xeJ18ZZ0BZljbzuiTTSvCaLSpR6Fq9U";
     const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // 2. 비밀번호 검증 ('111197' Base64)[cite: 3]
+    // 2. 비밀번호 검증 ('111197' Base64)[cite: 4]
     const CORRECT_PASS_BASE64 = "MTExMTk3"; 
 
     let selectedType = 'habit';
@@ -295,7 +295,7 @@
           checks.forEach(c => { checkState[c.habit_id] = c.is_done; });
         }
 
-        const { data: memoData } = await db.from('daily_memos').select('memo').eq('date', todayKey).single();
+        const { data: memoData } = await db.from('daily_memos').select('memo').eq('date', todayKey).maybeSingle();
         if (memoData) {
           document.getElementById('dailyMemo').value = memoData.memo || '';
         }
@@ -375,11 +375,14 @@
       checkState[id] = newState;
       render();
 
-      const { error } = await db.from('daily_checks').upsert({
-        date: todayKey,
-        habit_id: id,
-        is_done: newState
-      });
+      const { error } = await db.from('daily_checks').upsert(
+        {
+          date: todayKey,
+          habit_id: id,
+          is_done: newState
+        },
+        { onConflict: 'date,habit_id' }
+      );
       if (error) console.error("체크 저장 실패:", error);
     }
 
@@ -446,17 +449,21 @@
       document.getElementById('progressFill').style.width = `${percent}%`;
     }
 
-    // 일기 수동 저장 버튼 함수
+    // 📖 일기 수동 저장 버튼 함수 (onConflict 명시)
     async function manualSaveDiary() {
-      const memo = document.getElementById('dailyMemo').value.trim();
-      const { error } = await db.from('daily_memos').upsert({
-        date: todayKey,
-        memo: memo,
-        updated_at: new Date().toISOString()
-      });
+      const memo = document.getElementById('dailyMemo').value;
+      const { error } = await db.from('daily_memos').upsert(
+        {
+          date: todayKey,
+          memo: memo,
+          updated_at: new Date().toISOString()
+        },
+        { onConflict: 'date' }
+      );
 
       if (error) {
         alert("일기 저장 실패: " + error.message);
+        console.error("Diary Save Error:", error);
       } else {
         const statusEl = document.getElementById('saveStatus');
         statusEl.style.display = 'block';
@@ -465,20 +472,24 @@
       }
     }
 
-    // 일기 타이핑 자동 저장 (디바운스)
+    // 📖 일기 타이핑 자동 저장 (디바운스)
     function autoSaveDiary() {
       clearTimeout(memoTimeout);
       memoTimeout = setTimeout(async () => {
         const memo = document.getElementById('dailyMemo').value;
-        await db.from('daily_memos').upsert({
-          date: todayKey,
-          memo: memo,
-          updated_at: new Date().toISOString()
-        });
+        const { error } = await db.from('daily_memos').upsert(
+          {
+            date: todayKey,
+            memo: memo,
+            updated_at: new Date().toISOString()
+          },
+          { onConflict: 'date' }
+        );
+        if (error) console.error("일기 자동 저장 에러:", error);
       }, 1000);
     }
 
-    // 지난 일기 히스토리 조회
+    // 📚 지난 일기 히스토리 조회
     async function loadDiaryHistory() {
       const historyListEl = document.getElementById('diaryHistoryList');
       const { data, error } = await db.from('daily_memos').select('*').order('date', { ascending: false }).limit(7);
