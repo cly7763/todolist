@@ -20,16 +20,23 @@
     .progress-bar { width: 100%; height: 8px; background: #e2e8f0; border-radius: 999px; overflow: hidden; }
     .progress-fill { height: 100%; width: 0%; background: #0ea5e9; transition: width 0.3s ease; }
     
-    .input-group { display: flex; gap: 8px; margin-bottom: 16px; }
-    input[type="text"], input[type="password"], input[type="time"] { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px 14px; color: #1e293b; font-size: 0.95rem; outline: none; transition: border 0.2s; }
+    /* 루틴 추가 폼 스타일 */
+    .add-form { background: #ffffff; border-radius: 16px; padding: 16px; margin-bottom: 18px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 10px; }
+    .time-range-group { display: flex; align-items: center; gap: 8px; }
+    .time-wrapper { flex: 1; display: flex; align-items: center; gap: 4px; }
+    .time-label { font-size: 0.8rem; font-weight: 600; color: #64748b; white-space: nowrap; }
+    
+    input[type="text"], input[type="password"], input[type="time"] { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px 12px; color: #1e293b; font-size: 0.95rem; outline: none; transition: border 0.2s; }
+    input[type="time"] { width: 100%; font-size: 0.9rem; }
     input[type="text"]:focus, input[type="password"]:focus, input[type="time"]:focus { border-color: #0ea5e9; }
     
-    #timeInput { width: 105px; padding: 10px 8px; font-size: 0.9rem; }
+    .input-action-group { display: flex; gap: 8px; }
     #habitInput { flex: 1; }
 
-    button.add-btn { background: #0ea5e9; color: #ffffff; border: none; border-radius: 10px; padding: 10px 16px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+    button.add-btn { background: #0ea5e9; color: #ffffff; border: none; border-radius: 10px; padding: 10px 18px; font-weight: 600; cursor: pointer; white-space: nowrap; font-size: 0.95rem; }
     button.add-btn:hover { background: #0284c7; }
     
+    /* 루틴 목록 스타일 */
     .routine-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
     .routine-item { display: flex; align-items: center; justify-content: space-between; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 1px 2px rgba(0,0,0,0.03); }
     .routine-item.done { background: #f0f9ff; border-color: #7dd3fc; }
@@ -39,8 +46,8 @@
     .checkbox svg { display: none; width: 14px; height: 14px; stroke: #ffffff; stroke-width: 3; }
     .routine-item.done .checkbox svg { display: block; }
     
-    .routine-content { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; overflow: hidden; }
-    .time-badge { background: #e0f2fe; color: #0369a1; font-size: 0.75rem; font-weight: 600; padding: 2px 8px; border-radius: 6px; flex-shrink: 0; }
+    .routine-content { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+    .time-badge { align-self: flex-start; background: #e0f2fe; color: #0369a1; font-size: 0.75rem; font-weight: 600; padding: 2px 8px; border-radius: 6px; }
     .routine-item.done .time-badge { background: #e2e8f0; color: #94a3b8; }
     .routine-text { font-size: 0.95rem; color: #1e293b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .routine-item.done .routine-text { text-decoration: line-through; color: #64748b; }
@@ -97,11 +104,23 @@
       </div>
     </div>
 
-    <!-- 시간 선택 및 루틴 입력 -->
-    <div class="input-group">
-      <input type="time" id="timeInput" title="시간 선택">
-      <input type="text" id="habitInput" placeholder="새 루틴 추가" onkeypress="handleKeyPress(event)">
-      <button class="add-btn" onclick="addHabit()">추가</button>
+    <!-- 루틴 추가 박스 (시작~종료 시간 범위) -->
+    <div class="add-form">
+      <div class="time-range-group">
+        <div class="time-wrapper">
+          <span class="time-label">시작</span>
+          <input type="time" id="startTimeInput">
+        </div>
+        <span style="color: #94a3b8; font-weight: bold;">~</span>
+        <div class="time-wrapper">
+          <span class="time-label">종료</span>
+          <input type="time" id="endTimeInput">
+        </div>
+      </div>
+      <div class="input-action-group">
+        <input type="text" id="habitInput" placeholder="새 루틴 내용 입력" onkeypress="handleKeyPress(event)">
+        <button class="add-btn" onclick="addHabit()">추가</button>
+      </div>
     </div>
 
     <div id="loading" class="loading-text">동기화 중...</div>
@@ -174,12 +193,14 @@
     let checkState = {};
     let memoTimeout = null;
 
-    // 데이터 정렬 함수 (시간 있는 것 우선 오름차순, 미설정 항목은 뒤로)
+    // 데이터 정렬 함수 (시작 시간 오름차순 정렬)
     function sortHabits(list) {
       return list.sort((a, b) => {
-        if (a.time && b.time) return a.time.localeCompare(b.time);
-        if (a.time && !b.time) return -1;
-        if (!a.time && b.time) return 1;
+        const timeA = a.time || '';
+        const timeB = b.time || '';
+        if (timeA && timeB) return timeA.localeCompare(timeB);
+        if (timeA && !timeB) return -1;
+        if (!timeA && timeB) return 1;
         return (a.id || 0) - (b.id || 0);
       });
     }
@@ -222,7 +243,17 @@
           toggleHabit(habit.id);
         };
 
-        const timeTag = habit.time ? `<span class="time-badge">${habit.time}</span>` : '';
+        // 시간 표시 라벨 (시작 ~ 종료)
+        let timeLabel = '';
+        if (habit.time && habit.end_time) {
+          timeLabel = `${habit.time} ~ ${habit.end_time}`;
+        } else if (habit.time) {
+          timeLabel = habit.time;
+        } else if (habit.end_time) {
+          timeLabel = `~ ${habit.end_time}`;
+        }
+
+        const timeTag = timeLabel ? `<span class="time-badge">🕒 ${timeLabel}</span>` : '';
 
         li.innerHTML = `
           <div class="routine-left">
@@ -256,20 +287,24 @@
 
     async function addHabit() {
       const input = document.getElementById('habitInput');
-      const timeInput = document.getElementById('timeInput');
+      const startTimeInput = document.getElementById('startTimeInput');
+      const endTimeInput = document.getElementById('endTimeInput');
+
       const text = input.value.trim();
-      const time = timeInput.value;
+      const time = startTimeInput.value;
+      const end_time = endTimeInput.value;
 
       if (!text) return;
 
       const newId = Date.now();
-      const newHabit = { id: newId, text, time };
+      const newHabit = { id: newId, text, time, end_time };
       
       habits.push(newHabit);
       habits = sortHabits(habits);
       
       input.value = '';
-      timeInput.value = '';
+      startTimeInput.value = '';
+      endTimeInput.value = '';
       render();
 
       await db.from('habits').insert([newHabit]);
