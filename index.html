@@ -3,69 +3,70 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Bright Daily Habit Tracker</title>
+  <title>Daily Habit & Routine</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: #f1f5f9; color: #1e293b; padding: 24px 16px; display: flex; justify-content: center; min-height: 100vh; }
     
-    /* [수정] 배경색을 칙칙한 어두운색에서 밝은 화이트/그레이톤으로 변경 */
-    body { background-color: #f1f5f9; color: #1e293b; padding: 24px 16px; display: flex; justify-content: center; }
-    
-    .container { width: 100%; max-width: 480px; }
+    .container { width: 100%; max-width: 480px; display: none; }
     header { margin-bottom: 24px; text-align: center; }
-    
-    /* [수정] 텍스트 색상들 조정 */
     .date-text { font-size: 0.85rem; color: #64748b; font-weight: 500; text-transform: uppercase; }
     .title { font-size: 1.6rem; font-weight: 700; margin-top: 4px; color: #0f172a; }
     
-    /* [수정] 카드 배경을 화이트로, 그림자는 부드럽게 */
     .card { background: #ffffff; border-radius: 16px; padding: 18px; margin-bottom: 18px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-    
-    .progress-header { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem; font-weight: 600; color: #1e293b;}
-    
-    /* [수정] 프로그레스 바 배경색 조정 */
+    .progress-header { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem; font-weight: 600; color: #1e293b; }
     .progress-bar { width: 100%; height: 8px; background: #e2e8f0; border-radius: 999px; overflow: hidden; }
     .progress-fill { height: 100%; width: 0%; background: #0ea5e9; transition: width 0.3s ease; }
     
     .input-group { display: flex; gap: 8px; margin-bottom: 16px; }
-    
-    /* [수정] 인풋 필드 스타일 조정 */
-    input[type="text"] { flex: 1; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px 14px; color: #1e293b; font-size: 0.95rem; outline: none; transition: border 0.2s; }
-    input[type="text"]:focus { border-color: #0ea5e9; }
+    input[type="text"], input[type="password"] { flex: 1; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px 14px; color: #1e293b; font-size: 0.95rem; outline: none; transition: border 0.2s; }
+    input[type="text"]:focus, input[type="password"]:focus { border-color: #0ea5e9; }
     
     button.add-btn { background: #0ea5e9; color: #ffffff; border: none; border-radius: 10px; padding: 10px 16px; font-weight: 600; cursor: pointer; }
     button.add-btn:hover { background: #0284c7; }
     
     .routine-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
-    
-    /* [수정] 리스트 아이템 배경을 화이트로 */
     .routine-item { display: flex; align-items: center; justify-content: space-between; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 1px 2px rgba(0,0,0,0.03); }
-    
-    /* [수정] 완료 시 파란색 계열 배경과 테두리 */
     .routine-item.done { background: #f0f9ff; border-color: #7dd3fc; }
-    
     .routine-left { display: flex; align-items: center; gap: 12px; flex: 1; }
-    
-    /* [수정] 체크박스 색상 조정 */
     .checkbox { width: 22px; height: 22px; border-radius: 6px; border: 2px solid #cbd5e1; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
     .routine-item.done .checkbox { background: #0ea5e9; border-color: #0ea5e9; }
     .checkbox svg { display: none; width: 14px; height: 14px; stroke: #ffffff; stroke-width: 3; }
     .routine-item.done .checkbox svg { display: block; }
-    
-    /* [수정] 완료 시 텍스트 색상 조정 */
     .routine-text { font-size: 0.95rem; color: #1e293b; }
     .routine-item.done .routine-text { text-decoration: line-through; color: #64748b; }
-    
-    /* [수정] 삭제 버튼 색상 조정 */
-    .delete-btn { background: transparent; border: none; color: #94a3b8; cursor: pointer; padding: 4px; font-size: 1.1rem;}
+    .delete-btn { background: transparent; border: none; color: #94a3b8; cursor: pointer; padding: 4px; font-size: 1.1rem; }
     .delete-btn:hover { color: #ef4444; }
     
-    /* [수정] 메모 영역 스타일 조정 */
-    .memo-area { width: 100%; height: 80px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px; color: #1e293b; font-size: 0.9rem; resize: none; outline: none; transition: border 0.2s; }
+    .memo-area { width: 100%; height: 80px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px; color: #1e293b; font-size: 0.9rem; resize: none; outline: none; }
     .memo-area:focus { border-color: #0ea5e9; }
+
+    /* 잠금 화면 스타일 */
+    #lockScreen { width: 100%; max-width: 380px; margin: auto; text-align: center; }
+    .lock-card { background: #ffffff; border-radius: 16px; padding: 32px 24px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+    .lock-icon { font-size: 2.2rem; margin-bottom: 12px; }
+    .lock-error { color: #ef4444; font-size: 0.85rem; margin-top: 8px; display: none; }
   </style>
 </head>
 <body>
-  <div class="container">
+
+  <!-- 1. 비밀번호 잠금 화면 -->
+  <div id="lockScreen">
+    <div class="lock-card">
+      <div class="lock-icon">🔒</div>
+      <h2 style="font-size: 1.3rem; margin-bottom: 6px;">개인 루틴 공간</h2>
+      <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 20px;">비밀번호를 입력하세요.</p>
+      
+      <div style="display: flex; gap: 8px;">
+        <input type="password" id="passInput" placeholder="비밀번호" onkeypress="handlePassKey(event)">
+        <button class="add-btn" onclick="checkAuth()">입장</button>
+      </div>
+      <div id="lockError" class="lock-error">비밀번호가 올바르지 않습니다.</div>
+    </div>
+  </div>
+
+  <!-- 2. 실제 메인 루틴 앱 화면 -->
+  <div id="appContainer" class="container">
     <header>
       <div id="currentDate" class="date-text">TODAY</div>
       <h1 class="title">Daily Routine</h1>
@@ -82,7 +83,7 @@
     </div>
 
     <div class="input-group">
-      <input type="text" id="habitInput" placeholder="새 루틴 추가 (예: 외국어 공부 30분)" onkeypress="handleKeyPress(event)">
+      <input type="text" id="habitInput" placeholder="새 루틴 추가 (예: 운동 30분)" onkeypress="handleKeyPress(event)">
       <button class="add-btn" onclick="addHabit()">추가</button>
     </div>
 
@@ -95,16 +96,51 @@
   </div>
 
   <script>
+    // 기본 비밀번호 '1234'의 SHA-256 해시값
+    const CORRECT_HASH = "7c6e737976e18ae17ca06f69f237f3747683935dbdafe13f1737f26487e61ef0";
+
+    async function hashString(str) {
+      const utf8 = new TextEncoder().encode(str);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', utf8);
+      return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    async function checkAuth() {
+      const input = document.getElementById('passInput').value;
+      const inputHash = await hashString(input);
+
+      if (inputHash === CORRECT_HASH) {
+        localStorage.setItem('auth_verified', 'true');
+        unlockApp();
+      } else {
+        document.getElementById('lockError').style.display = 'block';
+      }
+    }
+
+    function unlockApp() {
+      document.getElementById('lockScreen').style.display = 'none';
+      document.getElementById('appContainer').style.display = 'block';
+      render();
+    }
+
+    function handlePassKey(e) {
+      if (e.key === 'Enter') checkAuth();
+    }
+
+    // 이미 인증된 경우 잠금 화면 스킵
+    if (localStorage.getItem('auth_verified') === 'true') {
+      unlockApp();
+    }
+
+    // --- 루틴 관리 로직 ---
     const todayKey = new Date().toISOString().split('T')[0];
-    
-    // 날짜 텍스트 렌더링
     const options = { month: 'long', day: 'numeric', weekday: 'short' };
     document.getElementById('currentDate').innerText = `${todayKey} (${new Date().toLocaleDateString('ko-KR', options)})`;
 
     let habits = JSON.parse(localStorage.getItem('my_habits')) || [
       { id: 1, text: '핵심 집중 작업 1시간' },
       { id: 2, text: '스트레칭 및 운동' },
-      { id: 3, text: '일일 루틴성' }
+      { id: 3, text: '일일 루틴 회고 작성' }
     ];
 
     let checkState = JSON.parse(localStorage.getItem(`checked_${todayKey}`)) || {};
@@ -185,8 +221,6 @@
     function handleKeyPress(e) {
       if (e.key === 'Enter') addHabit();
     }
-
-    render();
   </script>
 </body>
 </html>
