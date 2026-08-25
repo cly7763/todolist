@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Daily Habit & Routine</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: #0f172a; color: #f8fafc; padding: 24px 16px; display: flex; justify-content: center; }
+    .container { width: 100%; max-width: 480px; }
+    header { margin-bottom: 24px; }
+    .date-text { font-size: 0.85rem; color: #94a3b8; font-weight: 500; text-transform: uppercase; }
+    .title { font-size: 1.6rem; font-weight: 700; margin-top: 4px; color: #ffffff; }
+    
+    .card { background: #1e293b; border-radius: 16px; padding: 18px; margin-bottom: 18px; border: 1px solid #334155; }
+    .progress-header { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem; font-weight: 600; }
+    .progress-bar { width: 100%; height: 8px; background: #334155; border-radius: 999px; overflow: hidden; }
+    .progress-fill { height: 100%; width: 0%; background: #38bdf8; transition: width 0.3s ease; }
+    
+    .input-group { display: flex; gap: 8px; margin-bottom: 16px; }
+    input[type="text"] { flex: 1; background: #334155; border: 1px solid #475569; border-radius: 10px; padding: 10px 14px; color: #fff; font-size: 0.95rem; outline: none; }
+    input[type="text"]:focus { border-color: #38bdf8; }
+    button.add-btn { background: #38bdf8; color: #0f172a; border: none; border-radius: 10px; padding: 10px 16px; font-weight: 600; cursor: pointer; }
+    
+    .routine-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .routine-item { display: flex; align-items: center; justify-content: space-between; background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 14px 16px; cursor: pointer; transition: all 0.2s ease; }
+    .routine-item.done { background: #0f2d42; border-color: #0284c7; }
+    .routine-left { display: flex; align-items: center; gap: 12px; flex: 1; }
+    .checkbox { width: 22px; height: 22px; border-radius: 6px; border: 2px solid #64748b; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+    .routine-item.done .checkbox { background: #38bdf8; border-color: #38bdf8; }
+    .checkbox svg { display: none; width: 14px; height: 14px; stroke: #0f172a; stroke-width: 3; }
+    .routine-item.done .checkbox svg { display: block; }
+    .routine-text { font-size: 0.95rem; color: #e2e8f0; }
+    .routine-item.done .routine-text { text-decoration: line-through; color: #94a3b8; }
+    .delete-btn { background: transparent; border: none; color: #64748b; cursor: pointer; padding: 4px; }
+    .delete-btn:hover { color: #f87171; }
+    
+    .memo-area { width: 100%; height: 80px; background: #334155; border: 1px solid #475569; border-radius: 10px; padding: 10px; color: #fff; font-size: 0.9rem; resize: none; outline: none; }
+    .memo-area:focus { border-color: #38bdf8; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div id="currentDate" class="date-text">TODAY</div>
+      <h1 class="title">Daily Routine</h1>
+    </header>
+
+    <div class="card">
+      <div class="progress-header">
+        <span>오늘 달성률</span>
+        <span id="progressPercent">0%</span>
+      </div>
+      <div class="progress-bar">
+        <div id="progressFill" class="progress-fill"></div>
+      </div>
+    </div>
+
+    <div class="input-group">
+      <input type="text" id="habitInput" placeholder="새 루틴 추가 (예: 운동 30분)" onkeypress="handleKeyPress(event)">
+      <button class="add-btn" onclick="addHabit()">추가</button>
+    </div>
+
+    <ul id="routineList" class="routine-list"></ul>
+
+    <div class="card" style="margin-top: 18px;">
+      <div style="font-size: 0.9rem; font-weight: 600; margin-bottom: 8px;">오늘의 한 줄 회고</div>
+      <textarea id="dailyMemo" class="memo-area" placeholder="오늘 하루 피드백이나 간단한 메모를 남기세요." oninput="saveMemo()"></textarea>
+    </div>
+  </div>
+
+  <script>
+    const todayKey = new Date().toISOString().split('T')[0];
+    
+    // 날짜 텍스트 렌더링
+    const options = { month: 'long', day: 'numeric', weekday: 'short' };
+    document.getElementById('currentDate').innerText = `${todayKey} (${new Date().toLocaleDateString('ko-KR', options)})`;
+
+    let habits = JSON.parse(localStorage.getItem('my_habits')) || [
+      { id: 1, text: '핵심 집중 작업 1시간' },
+      { id: 2, text: '스트레칭 및 운동' },
+      { id: 3, text: '일일 루틴 회고 작성' }
+    ];
+
+    let checkState = JSON.parse(localStorage.getItem(`checked_${todayKey}`)) || {};
+    document.getElementById('dailyMemo').value = localStorage.getItem(`memo_${todayKey}`) || '';
+
+    function render() {
+      const listEl = document.getElementById('routineList');
+      listEl.innerHTML = '';
+
+      habits.forEach(habit => {
+        const isDone = !!checkState[habit.id];
+        const li = document.createElement('li');
+        li.className = `routine-item ${isDone ? 'done' : ''}`;
+        li.onclick = (e) => {
+          if (e.target.closest('.delete-btn')) return;
+          toggleHabit(habit.id);
+        };
+
+        li.innerHTML = `
+          <div class="routine-left">
+            <div class="checkbox">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            </div>
+            <span class="routine-text">${habit.text}</span>
+          </div>
+          <button class="delete-btn" onclick="deleteHabit(${habit.id})">✕</button>
+        `;
+        listEl.appendChild(li);
+      });
+
+      updateProgress();
+    }
+
+    function toggleHabit(id) {
+      checkState[id] = !checkState[id];
+      localStorage.setItem(`checked_${todayKey}`, JSON.stringify(checkState));
+      render();
+    }
+
+    function addHabit() {
+      const input = document.getElementById('habitInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const newHabit = { id: Date.now(), text };
+      habits.push(newHabit);
+      localStorage.setItem('my_habits', JSON.stringify(habits));
+      input.value = '';
+      render();
+    }
+
+    function deleteHabit(id) {
+      habits = habits.filter(h => h.id !== id);
+      delete checkState[id];
+      localStorage.setItem('my_habits', JSON.stringify(habits));
+      localStorage.setItem(`checked_${todayKey}`, JSON.stringify(checkState));
+      render();
+    }
+
+    function updateProgress() {
+      if (habits.length === 0) {
+        document.getElementById('progressPercent').innerText = '0%';
+        document.getElementById('progressFill').style.width = '0%';
+        return;
+      }
+      const doneCount = habits.filter(h => checkState[h.id]).length;
+      const percent = Math.round((doneCount / habits.length) * 100);
+      document.getElementById('progressPercent').innerText = `${percent}%`;
+      document.getElementById('progressFill').style.width = `${percent}%`;
+    }
+
+    function saveMemo() {
+      const memo = document.getElementById('dailyMemo').value;
+      localStorage.setItem(`memo_${todayKey}`, memo);
+    }
+
+    function handleKeyPress(e) {
+      if (e.key === 'Enter') addHabit();
+    }
+
+    render();
+  </script>
+</body>
+</html>
