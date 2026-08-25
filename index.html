@@ -105,31 +105,36 @@
 
   <script>
     // 1. Supabase 연동 설정 (본인 정보로 교체)
-    const SUPABASE_URL = "https://YOUR_PROJECT_ID.supabase.co";
-    const SUPABASE_KEY = "YOUR_ANON_PUBLIC_KEY";
+    const SUPABASE_URL = "https://mgwkzgprgyeznubetinl.supabase.co/rest/v1/";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1nd2t6Z3ByZ3llem51YmV0aW5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc1ODk4MTEsImV4cCI6MjEwMzE2NTgxMX0.VOUvvP30Kob1xeJ18ZZ0BZljbzuiTTSvCaLSpR6Fq9U";
     const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     // 2. 비밀번호 ('111197' 해시)
-    const CORRECT_HASH = "7c6e737976e18ae17ca06f69f237f3747683935dbdafe13f1737f26487e61ef0";
+    // '111197'의 Base64 인코딩 문자열
+    const CORRECT_PASS_BASE64 = "MTExMTk3"; 
 
-    async function hashString(str) {
-      const utf8 = new TextEncoder().encode(str);
-      const hashBuffer = await crypto.subtle.digest('SHA-256', utf8);
-      return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+    function checkAuth() {
+      const input = document.getElementById('passInput').value.trim();
+      
+      // UTF-8 안전 Base64 인코딩 비교
+      try {
+        const inputBase64 = btoa(unescape(encodeURIComponent(input)));
+
+        if (inputBase64 === CORRECT_PASS_BASE64) {
+          localStorage.setItem('auth_verified', 'true');
+          unlockApp();
+        } else {
+          showError();
+        }
+      } catch (e) {
+        showError();
+      }
     }
 
-    async function checkAuth() {
-      const input = document.getElementById('passInput').value.trim();
-      const inputHash = await hashString(input);
-
-      if (inputHash === CORRECT_HASH) {
-        localStorage.setItem('auth_verified', 'true');
-        unlockApp();
-      } else {
-        document.getElementById('lockError').style.display = 'block';
-        document.getElementById('passInput').value = '';
-        document.getElementById('passInput').focus();
-      }
+    function showError() {
+      document.getElementById('lockError').style.display = 'block';
+      document.getElementById('passInput').value = '';
+      document.getElementById('passInput').focus();
     }
 
     function unlockApp() {
