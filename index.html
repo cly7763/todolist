@@ -20,6 +20,30 @@
     .progress-bar { width: 100%; height: 8px; background: #e2e8f0; border-radius: 999px; overflow: hidden; }
     .progress-fill { height: 100%; width: 0%; background: #0ea5e9; transition: width 0.3s ease; }
     
+    /* 캘린더 스타일 */
+    .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .cal-title { font-size: 1rem; font-weight: 700; color: #0f172a; }
+    .cal-nav-btn { background: none; border: none; font-size: 1rem; color: #64748b; cursor: pointer; padding: 4px 8px; border-radius: 6px; }
+    .cal-nav-btn:hover { background: #f1f5f9; color: #0f172a; }
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+    .cal-day-name { font-size: 0.75rem; font-weight: 600; color: #94a3b8; padding: 4px 0; }
+    .cal-day { font-size: 0.85rem; padding: 8px 0; border-radius: 8px; cursor: pointer; position: relative; color: #334155; transition: 0.15s; }
+    .cal-day:hover { background: #f1f5f9; }
+    .cal-day.empty { cursor: default; }
+    .cal-day.today { font-weight: 700; color: #0ea5e9; }
+    .cal-day.selected { background: #0ea5e9 !important; color: #ffffff !important; font-weight: 700; }
+    .cal-dot { position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; background: #f59e0b; border-radius: 50%; }
+    .cal-day.selected .cal-dot { background: #ffffff; }
+
+    /* 일정 아코디언 및 입력 */
+    .event-section { margin-top: 14px; border-top: 1px solid #f1f5f9; padding-top: 12px; }
+    .accordion-toggle { width: 100%; display: flex; justify-content: space-between; align-items: center; background: none; border: none; font-size: 0.88rem; font-weight: 600; color: #334155; cursor: pointer; padding: 4px 0; }
+    .accordion-toggle:hover { color: #0ea5e9; }
+    .event-body { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+    .event-input-group { display: flex; gap: 6px; }
+    .event-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+    .event-item { display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px 12px; border-radius: 8px; font-size: 0.88rem; }
+
     /* 추가 폼 */
     .add-form { background: #ffffff; border-radius: 16px; padding: 16px; margin-bottom: 18px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 10px; }
     .form-top-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
@@ -54,7 +78,6 @@
     .checkbox svg { display: none; width: 14px; height: 14px; stroke: #ffffff; stroke-width: 3; }
     .routine-item.done .checkbox svg { display: block; }
     
-    /* 메모 전용 아이템 스타일 */
     .routine-item.is-memo { border-left: 4px solid #f59e0b; }
     .routine-item.is-memo.done { background: #f8fafc; border-color: #cbd5e1; border-left-color: #94a3b8; }
     .routine-item.is-memo.done .checkbox { background: #94a3b8; border-color: #94a3b8; }
@@ -70,7 +93,7 @@
     .delete-btn { background: transparent; border: none; color: #94a3b8; cursor: pointer; padding: 2px 4px; font-size: 1.1rem; flex-shrink: 0; margin-left: 8px; }
     .delete-btn:hover { color: #ef4444; }
     
-    /* 일기 회고 영역 스타일 */
+    /* 일기 회고 스타일 */
     .memo-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
     .memo-title { font-size: 0.9rem; font-weight: 600; color: #0f172a; }
     .memo-save-btn { background: #0ea5e9; color: #ffffff; border: none; border-radius: 8px; padding: 6px 14px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: 0.2s; }
@@ -122,6 +145,42 @@
       <h1 class="title">Daily Routine</h1>
     </header>
 
+    <!-- 캘린더 카드 -->
+    <div class="card">
+      <div class="cal-header">
+        <button class="cal-nav-btn" onclick="changeMonth(-1)">◀</button>
+        <span id="calMonthTitle" class="cal-title">2026년 8월</span>
+        <button class="cal-nav-btn" onclick="changeMonth(1)">▶</button>
+      </div>
+      <div class="cal-grid">
+        <div class="cal-day-name" style="color:#ef4444;">일</div>
+        <div class="cal-day-name">월</div>
+        <div class="cal-day-name">화</div>
+        <div class="cal-day-name">수</div>
+        <div class="cal-day-name">목</div>
+        <div class="cal-day-name">금</div>
+        <div class="cal-day-name" style="color:#3b82f6;">토</div>
+      </div>
+      <div id="calDaysGrid" class="cal-grid" style="margin-top: 4px;"></div>
+
+      <!-- 선택된 날짜의 일정 (아코디언 토글) -->
+      <div class="event-section">
+        <button class="accordion-toggle" onclick="toggleEventAccordion()">
+          <span id="selectedDateTitle">📅 선택된 날짜 일정</span>
+          <span id="accordionArrow">▼</span>
+        </button>
+        
+        <div id="eventBody" class="event-body">
+          <div class="event-input-group">
+            <input type="text" id="eventInput" placeholder="선택한 날짜에 일정 추가" onkeypress="handleEventKeyPress(event)" style="flex:1;">
+            <button class="add-btn" style="padding: 6px 14px; font-size: 0.85rem;" onclick="addCalendarEvent()">등록</button>
+          </div>
+          <ul id="eventList" class="event-list"></ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- 오늘 루틴 달성률 -->
     <div class="card">
       <div class="progress-header">
         <span>오늘 루틴 달성률 (루틴 전용)</span>
@@ -135,12 +194,10 @@
     <!-- 추가 폼 -->
     <div class="add-form">
       <div class="form-top-row">
-        <!-- 타입 선택 탭 -->
         <div class="type-selector">
           <button type="button" id="typeHabitBtn" class="type-btn active" onclick="setType('habit')">루틴 (달성률 반영)</button>
           <button type="button" id="typeMemoBtn" class="type-btn" onclick="setType('memo')">메모 (달성률 제외)</button>
         </div>
-        <!-- 시간 범위 설정 -->
         <div id="timeRangeBox" class="time-range-group">
           <div class="time-wrapper">
             <span class="time-label">시작</span>
@@ -175,7 +232,7 @@
     </div>
     <ul id="memoList" class="routine-list"></ul>
 
-    <!-- 오늘의 일기 입력 카드 -->
+    <!-- 일기 입력 카드 -->
     <div class="card" style="margin-top: 24px;">
       <div class="memo-header">
         <div class="memo-title">📖 오늘 하루 일기 남기기</div>
@@ -240,6 +297,8 @@
       document.getElementById('appContainer').style.display = 'block';
       loadData();
       loadDiaryLogs();
+      loadCalendarEvents();
+      renderCalendar();
     }
 
     function logout() {
@@ -258,15 +317,146 @@
       unlockApp();
     }
 
-    // --- 데이터 및 UI 로직 ---
-    const todayKey = new Date().toISOString().split('T')[0];
+    // --- 기본 날짜 설정 ---
+    const now = new Date();
+    const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const options = { month: 'long', day: 'numeric', weekday: 'short' };
     document.getElementById('currentDate').innerText = `${todayKey} (${new Date().toLocaleDateString('ko-KR', options)})`;
 
     let habits = [];
     let checkState = {};
     let diaryLogs = [];
+    let calendarEvents = [];
 
+    // --- 캘린더 상태 ---
+    let currentCalDate = new Date();
+    let selectedCalDate = todayKey;
+    let isEventAccordionOpen = true;
+
+    function renderCalendar() {
+      const year = currentCalDate.getFullYear();
+      const month = currentCalDate.getMonth();
+      document.getElementById('calMonthTitle').innerText = `${year}년 ${month + 1}월`;
+
+      const firstDay = new Date(year, month, 1).getDay();
+      const lastDate = new Date(year, month + 1, 0).getDate();
+
+      const gridEl = document.getElementById('calDaysGrid');
+      gridEl.innerHTML = '';
+
+      for (let i = 0; i < firstDay; i++) {
+        const emptyDiv = document.createElement('div');
+        emptyDiv.className = 'cal-day empty';
+        gridEl.appendChild(emptyDiv);
+      }
+
+      for (let day = 1; day <= lastDate; day++) {
+        const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const dayDiv = document.createElement('div');
+        dayDiv.className = 'cal-day';
+        dayDiv.innerText = day;
+
+        if (dateKey === todayKey) dayDiv.classList.add('today');
+        if (dateKey === selectedCalDate) dayDiv.classList.add('selected');
+
+        const hasEvent = calendarEvents.some(ev => ev.date === dateKey);
+        if (hasEvent) {
+          const dot = document.createElement('div');
+          dot.className = 'cal-dot';
+          dayDiv.appendChild(dot);
+        }
+
+        dayDiv.onclick = () => selectCalendarDate(dateKey);
+        gridEl.appendChild(dayDiv);
+      }
+
+      updateSelectedDateView();
+    }
+
+    function changeMonth(delta) {
+      currentCalDate.setMonth(currentCalDate.getMonth() + delta);
+      renderCalendar();
+    }
+
+    function selectCalendarDate(dateKey) {
+      selectedCalDate = dateKey;
+      renderCalendar();
+    }
+
+    function toggleEventAccordion() {
+      isEventAccordionOpen = !isEventAccordionOpen;
+      const body = document.getElementById('eventBody');
+      const arrow = document.getElementById('accordionArrow');
+      body.style.display = isEventAccordionOpen ? 'flex' : 'none';
+      arrow.innerText = isEventAccordionOpen ? '▼' : '▶';
+    }
+
+    function updateSelectedDateView() {
+      document.getElementById('selectedDateTitle').innerText = `📅 ${selectedCalDate} 일정`;
+      const listEl = document.getElementById('eventList');
+      listEl.innerHTML = '';
+
+      const matchedEvents = calendarEvents.filter(ev => ev.date === selectedCalDate);
+      if (matchedEvents.length === 0) {
+        listEl.innerHTML = `<li style="text-align:center; color:#94a3b8; font-size:0.8rem; padding: 6px;">등록된 일정이 없습니다.</li>`;
+        return;
+      }
+
+      matchedEvents.forEach(ev => {
+        const li = document.createElement('li');
+        li.className = 'event-item';
+        li.innerHTML = `
+          <span>${ev.title}</span>
+          <button class="delete-btn" onclick="deleteCalendarEvent(${ev.id})">✕</button>
+        `;
+        listEl.appendChild(li);
+      });
+    }
+
+    async function loadCalendarEvents() {
+      const { data, error } = await db.from('calendar_events').select('*');
+      if (!error && data) {
+        calendarEvents = data;
+        renderCalendar();
+      }
+    }
+
+    async function addCalendarEvent() {
+      const input = document.getElementById('eventInput');
+      const title = input.value.trim();
+      if (!title) return;
+
+      const newEvent = {
+        id: Date.now(),
+        date: selectedCalDate,
+        title: title
+      };
+
+      const { error } = await db.from('calendar_events').insert([newEvent]);
+      if (error) {
+        alert("일정 저장 실패: " + error.message);
+        return;
+      }
+
+      calendarEvents.push(newEvent);
+      input.value = '';
+      renderCalendar();
+    }
+
+    async function deleteCalendarEvent(id) {
+      if (!confirm("이 일정을 삭제하시겠습니까?")) return;
+      const { error } = await db.from('calendar_events').delete().eq('id', id);
+      if (!error) {
+        calendarEvents = calendarEvents.filter(ev => ev.id !== id);
+        renderCalendar();
+      }
+    }
+
+    function handleEventKeyPress(e) {
+      if (e.key === 'Enter') addCalendarEvent();
+    }
+
+    // --- 루틴 및 메모 로직 ---
     function sortHabits(list) {
       return list.sort((a, b) => {
         const timeA = a.time || '';
@@ -282,12 +472,10 @@
       document.getElementById('loading').style.display = 'block';
 
       try {
-        const { data: habitData, error: hErr } = await db.from('habits').select('*');
-        if (hErr) console.error("Habits 조회 에러:", hErr);
+        const { data: habitData } = await db.from('habits').select('*');
         habits = sortHabits(habitData || []);
 
-        const { data: checks, error: cErr } = await db.from('daily_checks').select('*').eq('date', todayKey);
-        if (cErr) console.error("Checks 조회 에러:", cErr);
+        const { data: checks } = await db.from('daily_checks').select('*').eq('date', todayKey);
         checkState = {};
         if (checks) {
           checks.forEach(c => { checkState[c.habit_id] = c.is_done; });
@@ -368,11 +556,10 @@
       checkState[id] = newState;
       render();
 
-      const { error } = await db.from('daily_checks').upsert(
+      await db.from('daily_checks').upsert(
         { date: todayKey, habit_id: id, is_done: newState },
         { onConflict: 'date,habit_id' }
       );
-      if (error) console.error("체크 저장 실패:", error);
     }
 
     async function addHabit() {
@@ -407,13 +594,8 @@
     async function deleteHabit(id) {
       if (!confirm("이 항목을 삭제하시겠습니까?")) return;
 
-      const { error: delHabitErr } = await db.from('habits').delete().eq('id', id);
-      const { error: delCheckErr } = await db.from('daily_checks').delete().eq('habit_id', id);
-
-      if (delHabitErr || delCheckErr) {
-        alert("삭제 실패");
-        return;
-      }
+      await db.from('habits').delete().eq('id', id);
+      await db.from('daily_checks').delete().eq('habit_id', id);
 
       habits = habits.filter(h => h.id !== id);
       delete checkState[id];
@@ -436,7 +618,7 @@
       document.getElementById('progressFill').style.width = `${percent}%`;
     }
 
-    // 📖 일기 추가 함수 (인풋 비우고 리스트에 추가)
+    // --- 일기 로직 ---
     async function addDiary() {
       const memoInput = document.getElementById('dailyMemo');
       const memo = memoInput.value.trim();
@@ -455,15 +637,13 @@
       const { error } = await db.from('diary_logs').insert([newDiary]);
       if (error) {
         alert("일기 저장 실패: " + error.message);
-        console.error("Diary Insert Error:", error);
         return;
       }
 
-      memoInput.value = ''; // 저장 완료 후 인풋창 초기화
+      memoInput.value = '';
       loadDiaryLogs();
     }
 
-    // 📚 일기 목록 불러오기
     async function loadDiaryLogs() {
       const historyListEl = document.getElementById('diaryHistoryList');
       const { data, error } = await db.from('diary_logs').select('*').order('created_at', { ascending: false });
@@ -490,17 +670,10 @@
       });
     }
 
-    // ❌ 일기 개별 삭제 함수
     async function deleteDiary(id) {
       if (!confirm("이 일기를 삭제하시겠습니까?")) return;
-
       const { error } = await db.from('diary_logs').delete().eq('id', id);
-      if (error) {
-        alert("삭제 실패: " + error.message);
-        return;
-      }
-
-      loadDiaryLogs();
+      if (!error) loadDiaryLogs();
     }
 
     function handleKeyPress(e) {
